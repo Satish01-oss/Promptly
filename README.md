@@ -1,52 +1,36 @@
 # Promptly
 
-A Groq-powered prompt studio built with standard Next.js App Router, ready for Vercel.
+A Groq-powered prompt studio built with Next.js, ready for Vercel.
 
-- Public studio with editable results, templates, styles, tone controls, and a browser-local library.
-- Private `/admin` panel for site copy, FAQs, templates, model settings, AI instructions, feature switches, maintenance, limits, usage, and settings history.
-- Google sign-in restricted to the verified account `ss7233563@gmail.com` by default. There is no user-management UI or user database.
-- Neon Postgres stores settings, encrypted keys, history, rate counters, and aggregate metrics.
+## Deploy now
 
-**Deployment instructions: [VERCEL_SETUP.md](VERCEL_SETUP.md).**
+Import `Satish01-oss/Promptly` into Vercel with the Next.js preset. Add:
 
-## Commands
-
-Use Node 22.13 or newer.
-
-```powershell
-npm ci
-npm run typecheck
-npm test
-npm run build
+```dotenv
+GROQ_API_KEY=your-groq-api-key
+GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-The normal production build needs no live database or OAuth credentials. It builds the UI and server handlers, while the isolated PostgreSQL and deployment tests verify database behavior and the admin identity policy.
+Only GROQ_API_KEY is required. GROQ_MODEL is optional. The build no longer requires Neon, Google OAuth, AUTH_SECRET, or an encryption key, and runs no database migrations. See [VERCEL_SETUP.md](VERCEL_SETUP.md).
 
-For a working local server, copy `.env.example` to `.env.local`, fill its values, then run:
+## Current functionality
+
+The website retains the prompt editor, enhancement styles, tone/detail preferences, editable results, copy, starter templates, demo mode, and a browser-local prompt library. Groq is called only from the server. Your API key is never returned to the browser.
+
+Website configuration uses built-in defaults. The admin panel and all admin API operations are temporarily disabled, including API-key editing and persistent usage reporting. `/admin` explains that the control room is paused. No admin route is opened without authentication. The existing admin UI and storage schema remain in source for a later restoration.
+
+The per-minute limit is best-effort and in memory for each serverless instance. It resets on cold starts and is not a shared global quota. No prompt text or usage metrics are persisted.
+
+## Local development
+
+Use Node 22.x, install with `npm ci`, and put the Groq key in ignored `.env.local`:
 
 ```powershell
-npm run db:migrate
 npm run dev
 ```
 
-Configure Google’s development callback as `http://localhost:3000/api/auth/callback/google`. `npm start` runs the built production server. Local `.env.local` and legacy `.dev.vars` are ignored by Git. Next.js reads `.env.local`; it does not read `.dev.vars`.
+`npm run typecheck`, `npm test`, and `npm run build` verify the app. `npm run vercel-build` checks the Groq key before building. Next.js reads `.env.local`, not the older `.dev.vars` file. Never commit API keys or private environment files.
 
-## Administration
+The database schemas and settings repository are inactive historical/future-support code. No database driver or OAuth package is installed or used at runtime. Previously deployed database records are not deleted by this change.
 
-Open `/admin` and Continue with Google using the designated admin account. The server verifies the signed session and allowlisted email on every admin API request. Visitors cannot become administrators by setting headers, browser storage, or cookies themselves.
-
-Publish changes in the panel to save them. No source edit or redeployment is needed for the supported settings. Visitors receive the latest settings on the next page load. Stale writes from another session are rejected. Imports and restores become drafts for review before publication.
-
-Admin-managed Groq keys are validated, encrypted with AES-GCM, and stored in Postgres. Keep `SETTINGS_ENCRYPTION_KEY` stable. Exports and API responses never include keys. Usage metrics store totals, not prompt text. Rate counters use short-lived hashed visitor IP identifiers from Vercel’s proxy.
-
-## Storage and migration
-
-`db/migrations/0001_initial.sql` creates the PostgreSQL schema. `npm run db:migrate` applies it transactionally and preserves existing rows when rerun. It runs automatically in the Vercel build after environment checks. Standard CI uses `npm run build` and isolated tests, so it never touches your production database.
-
-The `drizzle/` folder is historical Cloudflare SQLite migration metadata and is not used by Vercel. New PostgreSQL schema changes belong in `db/migrations/`; `db/schema.ts` documents the PostgreSQL tables. No Cloudflare bindings, Worker runtime, ChatGPT authentication headers, or Vinext tooling are required.
-
-This migration changes the source repository for Vercel. The previously published Sites website is a separate deployment. Its saved database records are not automatically moved: export settings from its admin panel and import them into the Vercel admin panel if needed. API keys must be set in Vercel or entered again in the new admin panel.
-
-## Scope
-
-The panel covers everyday product configuration. Infrastructure, domains, Google OAuth, database provisioning, GitHub access, and provider billing stay in their own dashboards. The browser extension remains a planned phase; cross-origin extension API access is not enabled.
+The browser extension remains a planned phase.

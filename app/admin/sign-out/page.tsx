@@ -1,2 +1,0 @@
-import { signOut } from '../../../lib/auth';
-export default function SignOutPage(){return <main className="admin-access"><a className="brand" href="/">promptly.</a><h1>Leave the control room?</h1><p>Your published settings stay saved.</p><form action={async()=>{'use server';await signOut({redirectTo:'/admin'});}}><button className="enhance" type="submit">Sign out</button></form><a className="admin-back" href="/admin">Back to admin →</a></main>;}

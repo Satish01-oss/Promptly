@@ -1,16 +1,13 @@
 import 'server-only';
-import { neon } from '@neondatabase/serverless';
-import { createSettingsRepository,type Query } from './settings-repository';
-import { defaultConfig } from './site-config';
-export function runtime(){return {GROQ_API_KEY:process.env.GROQ_API_KEY,GROQ_MODEL:process.env.GROQ_MODEL,SETTINGS_ENCRYPTION_KEY:process.env.SETTINGS_ENCRYPTION_KEY};}
-const query:Query=async(sql,parameters=[])=>{const url=process.env.DATABASE_URL;if(!url)throw Error('Connect a Neon database and set DATABASE_URL.');const rows=await neon(url).query(sql,parameters);return rows as never;};
-const repository=createSettingsRepository(query,runtime);
-export const saveSettings=repository.saveSettings;
-export const groqKey=repository.groqKey;
-export const saveGroqKey=repository.saveGroqKey;
-export const consumeRateLimit=repository.consumeRateLimit;
-export const recordUsage=repository.recordUsage;
-export const getOverview=repository.overview;
-export async function loadSettings(){if(!process.env.DATABASE_URL)return {config:structuredClone({...defaultConfig,ai:{...defaultConfig.ai,model:process.env.GROQ_MODEL||defaultConfig.ai.model}}),revision:0,updatedAt:null};return repository.loadSettings();}
-export async function connectionStatus(){if(!process.env.DATABASE_URL)return {configured:false,source:'Database setup required',updatedAt:null,encryptionReady:Boolean(process.env.SETTINGS_ENCRYPTION_KEY)};return repository.connectionStatus();}
-
+import {defaultConfig,type SiteConfig} from './site-config';
+const buckets=new Map<string,{minute:number;count:number}>();
+export async function loadSettings(){return {config:structuredClone({...defaultConfig,ai:{...defaultConfig.ai,model:process.env.GROQ_MODEL||defaultConfig.ai.model}}),revision:0,updatedAt:null};}
+export async function groqKey(){return process.env.GROQ_API_KEY||'';}
+export async function connectionStatus(){return {configured:Boolean(process.env.GROQ_API_KEY),source:process.env.GROQ_API_KEY?'Hosting secret':'Not connected',updatedAt:null,encryptionReady:false};}
+/** Best-effort, per-instance protection. Counters reset with serverless cold starts. */
+export async function consumeRateLimit(identity:string,limit:number){const minute=Math.floor(Date.now()/60000);for(const [key,bucket] of buckets){if(bucket.minute!==minute)buckets.delete(key);}const hash=Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(identity))).toString('base64');if(!buckets.has(hash)&&buckets.size>=10000)return false;const bucket=buckets.get(hash)||{minute,count:0};bucket.count++;buckets.set(hash,bucket);return bucket.count<=limit;}
+// No prompt text or usage metrics are persisted while storage is paused.
+export async function recordUsage(_success:boolean,_latency:number,_input:number,_output=0):Promise<void>{}
+export async function saveSettings(_config:SiteConfig,_revision:number,_email:string):Promise<boolean>{throw Error('Admin settings are temporarily disabled.');}
+export async function saveGroqKey(_value:string,_email:string):Promise<void>{throw Error('Admin settings are temporarily disabled.');}
+export async function getOverview():Promise<{usage:unknown[];history:unknown[];connection:Awaited<ReturnType<typeof connectionStatus>>}>{throw Error('Admin settings are temporarily disabled.');}

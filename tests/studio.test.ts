@@ -1,0 +1,17 @@
+import {test,after} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {loadSettings,connectionStatus,consumeRateLimit,saveSettings} from '../lib/settings-store';
+import {authorizeAdmin} from '../lib/admin-auth';
+import {GET as site} from '../app/api/site/route';
+import {POST as enhance} from '../app/api/enhance/route';
+const originalFetch=globalThis.fetch;const originalKey=process.env.GROQ_API_KEY;
+after(()=>{globalThis.fetch=originalFetch;if(originalKey===undefined)delete process.env.GROQ_API_KEY;else process.env.GROQ_API_KEY=originalKey;});
+const request=(prompt='Write a launch email.')=>new Request('https://promptly.test/api/enhance',{method:'POST',headers:{Origin:'https://promptly.test','Content-Type':'application/json'},body:JSON.stringify({prompt,mode:'Balanced',tone:'Professional',detail:'Concise'})});
+test('deployment needs only the Groq key',()=>{const env:NodeJS.ProcessEnv={...process.env,GROQ_API_KEY:'test-placeholder-key'};for(const key of ['DATABASE_URL','AUTH_SECRET','AUTH_GOOGLE_ID','AUTH_GOOGLE_SECRET','SETTINGS_ENCRYPTION_KEY'])delete env[key];const result=spawnSync(process.execPath,['scripts/check-env.mjs'],{encoding:'utf8',env});assert.equal(result.status,0);assert.equal(result.stdout.includes('test-placeholder-key'),false);});
+test('settings and provider status need no database',async()=>{process.env.GROQ_API_KEY='test-provider-key';assert.equal((await loadSettings()).config.site.name,'Promptly');assert.equal((await connectionStatus()).configured,true);const response=await site();assert.equal(response.status,200);const body=await response.json();assert.equal(body.config.ai,undefined);assert.equal(JSON.stringify(body).includes('test-provider-key'),false);});
+test('admin access and persistent changes remain disabled',async()=>{assert.equal((await authorizeAdmin()).response.status,503);const {config}=await loadSettings();await assert.rejects(()=>saveSettings(config,0,'ss7233563@gmail.com'));});
+test('per-instance rate limits distinguish visitors',async()=>{const id=crypto.randomUUID();assert.equal(await consumeRateLimit(id,1),true);assert.equal(await consumeRateLimit(id,1),false);assert.equal(await consumeRateLimit(crypto.randomUUID(),1),true);});
+test('Groq enhancement succeeds without a database',async()=>{process.env.GROQ_API_KEY='test-provider-key';globalThis.fetch=async(input,options)=>{assert.equal(input,'https://api.groq.com/openai/v1/chat/completions');assert.equal((options?.headers as Record<string,string>).Authorization,'Bearer test-provider-key');return Response.json({choices:[{message:{content:'A clearer launch email prompt.'}}]});};const response=await enhance(request());assert.equal(response.status,200);assert.equal((await response.json()).result,'A clearer launch email prompt.');});
+test('provider rate limits and empty output are handled',async()=>{globalThis.fetch=async()=>new Response('',{status:429});assert.equal((await enhance(request())).status,429);globalThis.fetch=async()=>Response.json({choices:[]});assert.equal((await enhance(request())).status,502);});
+test('missing keys, empty prompts and cross-origin requests are rejected',async()=>{delete process.env.GROQ_API_KEY;assert.equal((await enhance(request())).status,503);assert.equal((await enhance(request(''))).status,400);assert.equal((await enhance(new Request('https://promptly.test/api/enhance',{method:'POST',headers:{Origin:'https://other.test'}}))).status,403);});

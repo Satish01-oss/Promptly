@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22.13.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev --webpack",
@@ -11,14 +11,12 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --conditions react-server --test tests/*.test.ts",
-    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "install:ci": "npm ci",
-    "vercel-build": "node --env-file-if-exists=.env.local scripts/check-env.mjs && npm run db:migrate && next build --webpack"
+    "vercel-build": "node --env-file-if-exists=.env.local scripts/check-env.mjs && next build --webpack"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@hookform/resolvers": "^5.7.1",
-    "@neondatabase/serverless": "1.2.0",
     "@shadcn/react": "^0.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -29,7 +27,6 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
     "next": "16.4.6",
-    "next-auth": "5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
     "react": "19.2.6",
@@ -45,7 +42,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.14",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
