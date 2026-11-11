@@ -1,4 +1,6 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+export const settings = sqliteTable('site_settings', { id: text('id').primaryKey(), value: text('value').notNull(), revision: integer('revision').notNull(), updatedAt: text('updated_at').notNull() });
+export const secrets = sqliteTable('app_secrets', { id: text('id').primaryKey(), value: text('value').notNull(), updatedAt: text('updated_at').notNull() });
+export const history = sqliteTable('admin_history', { id: text('id').primaryKey(), action: text('action').notNull(), actor: text('actor').notNull(), createdAt: text('created_at').notNull(), snapshot: text('snapshot') });
+export const usage = sqliteTable('daily_usage', { day: text('day').primaryKey(), requests: integer('requests').notNull(), successes: integer('successes').notNull(), errors: integer('errors').notNull(), latencyMs: integer('latency_ms').notNull(), inputCharacters: integer('input_characters').notNull(), outputCharacters: integer('output_characters').notNull() });
+export const requestLimits = sqliteTable('request_limits', { id: text('id').notNull(), minute: integer('minute').notNull(), count: integer('count').notNull() }, t => [primaryKey({ columns: [t.id, t.minute] })]);
