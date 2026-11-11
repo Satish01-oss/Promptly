@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         if (!['Balanced', 'Creative', 'Precise'].includes(mode) || !['Professional', 'Friendly', 'Direct', 'Playful'].includes(tone) || !['Detailed', 'Concise'].includes(detail))
             return json({ error: 'Choose valid enhancement preferences.' }, 400);
         inputLength = prompt.length;
-        const identity = request.headers.get('oai-authenticated-user-id') || request.headers.get('cf-connecting-ip') || 'anonymous';
+        const identity = process.env.VERCEL === '1' ? (request.headers.get('x-vercel-forwarded-for') || 'anonymous') : 'local-development';
         if (!await consumeRateLimit(identity, config.limits.requestsPerMinute))
             return json({ error: 'You have reached the request limit. Please wait a minute and try again.' }, 429);
         const key = await groqKey();
@@ -63,3 +63,4 @@ export async function POST(request: Request) {
         return json({ error: 'The enhancement service is temporarily unavailable. Please try again.' }, 503);
     }
 }
+

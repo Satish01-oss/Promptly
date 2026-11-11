@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
-export const settings = sqliteTable('site_settings', { id: text('id').primaryKey(), value: text('value').notNull(), revision: integer('revision').notNull(), updatedAt: text('updated_at').notNull() });
-export const secrets = sqliteTable('app_secrets', { id: text('id').primaryKey(), value: text('value').notNull(), updatedAt: text('updated_at').notNull() });
-export const history = sqliteTable('admin_history', { id: text('id').primaryKey(), action: text('action').notNull(), actor: text('actor').notNull(), createdAt: text('created_at').notNull(), snapshot: text('snapshot') });
-export const usage = sqliteTable('daily_usage', { day: text('day').primaryKey(), requests: integer('requests').notNull(), successes: integer('successes').notNull(), errors: integer('errors').notNull(), latencyMs: integer('latency_ms').notNull(), inputCharacters: integer('input_characters').notNull(), outputCharacters: integer('output_characters').notNull() });
-export const requestLimits = sqliteTable('request_limits', { id: text('id').notNull(), minute: integer('minute').notNull(), count: integer('count').notNull() }, t => [primaryKey({ columns: [t.id, t.minute] })]);
+import { pgTable,text,integer,bigint,primaryKey } from 'drizzle-orm/pg-core';
+export const settings=pgTable('site_settings',{id:text('id').primaryKey(),value:text('value').notNull(),revision:integer('revision').notNull(),updatedAt:text('updated_at').notNull()});
+export const secrets=pgTable('app_secrets',{id:text('id').primaryKey(),value:text('value').notNull(),updatedAt:text('updated_at').notNull()});
+export const history=pgTable('admin_history',{id:text('id').primaryKey(),action:text('action').notNull(),actor:text('actor').notNull(),createdAt:text('created_at').notNull(),snapshot:text('snapshot')});
+export const usage=pgTable('daily_usage',{day:text('day').primaryKey(),requests:bigint('requests',{mode:'number'}).notNull(),successes:bigint('successes',{mode:'number'}).notNull(),errors:bigint('errors',{mode:'number'}).notNull(),latencyMs:bigint('latency_ms',{mode:'number'}).notNull(),inputCharacters:bigint('input_characters',{mode:'number'}).notNull(),outputCharacters:bigint('output_characters',{mode:'number'}).notNull()});
+export const requestLimits=pgTable('request_limits',{id:text('id').notNull(),minute:bigint('minute',{mode:'number'}).notNull(),count:integer('count').notNull()},t=>[primaryKey({columns:[t.id,t.minute]})]);
